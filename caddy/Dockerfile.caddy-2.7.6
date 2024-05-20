@@ -1,15 +1,19 @@
+######
 # Build with:
-# docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:latest --platform linux/amd64,linux/arm,linux/arm64,linux/arm,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
-#
+# docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:v2.7-latest --platform linux/amd64,linux/arm,linux/arm64,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
+######
 
-FROM caddy:builder AS builder
+FROM golang:1.22.3 AS builder
 ARG CADDY_VERSION=2.7.6
+
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
 
 RUN xcaddy build v${CADDY_VERSION} \
     --with github.com/caddy-dns/godaddy \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/caddyserver/transform-encoder \
-    --with github.com/sagikazarmark/caddy-fs-s3
+    --with github.com/sagikazarmark/caddy-fs-s3 \
+    --output /usr/bin/caddy
 
 FROM caddy:latest
 

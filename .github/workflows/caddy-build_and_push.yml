@@ -1,15 +1,16 @@
-name: Build and Push Caddy Docker Images
+name: Build and push Caddy Docker Images
 
 on:
   push:
     branches:
       - main
-    paths:
-      - 'caddy/Dockerfile.caddy-2.7.6'
-      - 'caddy/Dockerfile.caddy-2.8.0-beta.2'
+#   paths:
+#     - 'caddy/**'
+#     - 'caddy/**'
 
 jobs:
-  build_and_push_2_7_6:
+  build_and_push_v2-7-6:
+    if: contains(github.event.head_commit.message, 'build/caddy:2.7.6') || contains(github.event.head_commit.message, 'build/all')
     runs-on: ubuntu-latest
 
     steps:
@@ -26,10 +27,11 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push
-      run: cd ./caddy && docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:latest --platform linux/amd64,linux/arm,linux/arm64,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
+      run: cd ./caddy && docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:v2.7-latest --platform linux/amd64,linux/arm,linux/arm64,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
 
-  build_and_push_2-8-0-beta-2:
+  build_and_push_v2-8-0-beta-2:
     runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'build/caddy:2.8.0-beta.2') || contains(github.event.head_commit.message, 'build/all')
 
     steps:
     - name: Checkout repository
@@ -45,4 +47,4 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and push
-      run: cd ./caddy && docker buildx build -t rlkvch/caddy:v2.8.0-beta.2 -t rlkvch/caddy:latest --platform linux/amd64,linux/arm,linux/arm64,linux/arm,linux/ppc64le -f Dockerfile.caddy-2.8.0-beta.2 --push .
+      run: cd ./caddy && docker buildx build -t rlkvch/caddy:v2.8.0-beta.2 -t rlkvch/caddy:v2.8-latest --platform linux/amd64,linux/arm,linux/arm64,linux/arm,linux/ppc64le -f Dockerfile.caddy-2.8.0-beta.2 --push .
