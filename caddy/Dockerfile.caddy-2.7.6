@@ -1,0 +1,24 @@
+# Build with:
+# docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:latest --platform linux/amd64,linux/arm,linux/arm64,linux/arm,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
+#
+
+FROM caddy:builder AS builder
+ARG CADDY_VERSION=2.7.6
+
+RUN xcaddy build v${CADDY_VERSION} \
+    --with github.com/caddy-dns/godaddy \
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/caddyserver/transform-encoder \
+    --with github.com/sagikazarmark/caddy-fs-s3
+
+FROM caddy:latest
+
+LABEL maintainer="Ilya Arlukevich <arlukevich@proton.me>"
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+
+WORKDIR /etc/caddy
+
+EXPOSE 80 443
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
