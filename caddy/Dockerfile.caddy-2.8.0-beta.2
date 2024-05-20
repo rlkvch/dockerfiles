@@ -12,7 +12,8 @@ RUN xcaddy build v${CADDY_VERSION} \
     --with github.com/caddy-dns/godaddy \
     --with github.com/caddy-dns/cloudflare \
     --with github.com/caddyserver/transform-encoder \
-    --with github.com/sagikazarmark/caddy-fs-s3
+    --with github.com/sagikazarmark/caddy-fs-s3 \
+    --output /usr/bin/caddy
 
 FROM caddy:latest
 
