@@ -5,8 +5,8 @@ on:
     branches:
       - main
     paths:
-      - './caddy/Dockerfile.caddy-2.7.6'
-      - './caddy/Dockerfile.caddy-2.8.0-beta.2'
+      - 'caddy/Dockerfile.caddy-2.7.6'
+      - 'caddy/Dockerfile.caddy-2.8.0-beta.2'
 
 jobs:
   build_and_push_2_7_6:
