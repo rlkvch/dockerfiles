@@ -2,13 +2,12 @@ name: Build and push Caddy images
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # один job – несколько конфигураций
     strategy:
       fail-fast: false
       matrix:
@@ -37,27 +36,24 @@ jobs:
             platforms: linux/amd64,linux/arm64
             filter: "build/caddy:2.10.0"
 
-    # собираем только нужные образы
-    if: contains(github.event.head_commit.message, matrix.filter) ||
-        contains(github.event.head_commit.message, 'build/all')
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up QEMU (кросс-сборка)
-        uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-qemu-action@v3
+        if: contains(github.event.head_commit.message, matrix.filter) || contains(github.event.head_commit.message, 'build/all')
 
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v3
+        if: contains(github.event.head_commit.message, matrix.filter) || contains(github.event.head_commit.message, 'build/all')
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
+        if: contains(github.event.head_commit.message, matrix.filter) || contains(github.event.head_commit.message, 'build/all')
         with:
-          registry: docker.io          # явный реестр
+          registry: docker.io
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}  # персональный access-token
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build & push ${{ matrix.version }}
+        if: contains(github.event.head_commit.message, matrix.filter) || contains(github.event.head_commit.message, 'build/all')
         uses: docker/build-push-action@v5
         with:
           context: ./caddy
@@ -65,5 +61,5 @@ jobs:
           push: true
           tags: ${{ matrix.tags }}
           platforms: ${{ matrix.platforms }}
-          cache-from: type=gha          # кеш в Actions
+          cache-from: type=gha
           cache-to:   type=gha,mode=max
