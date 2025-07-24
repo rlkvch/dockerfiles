@@ -1,0 +1,26 @@
+######
+# Build with:
+# docker buildx build -t rlkvch/caddy:2.10.0 -t rlkvch/caddy:v2.10-latest -t biggiko/caddy:v2.10 --platform linux/amd64,linux/arm64 -f Dockerfile.caddy-2.10.0 --push .
+######
+
+FROM golang:1.24.2 AS builder
+ARG CADDY_VERSION=2.10.0
+
+RUN go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
+
+RUN xcaddy build v${CADDY_VERSION} \
+    --with github.com/caddy-dns/cloudflare \
+    --with github.com/mholt/caddy-ratelimit \
+    --output /usr/bin/caddy
+
+FROM caddy:latest
+
+LABEL maintainer="Ilya Arlukevich <arlukevich@proton.me>"
+
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy
+
+WORKDIR /etc/caddy
+
+EXPOSE 80 443
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
