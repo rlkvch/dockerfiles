@@ -1,70 +1,69 @@
-name: Build and push Caddy Docker Images
+name: Build and push Caddy images
 
 on:
   push:
-    branches:
-      - main
-#   paths:
-#     - 'caddy/**'
-#     - 'caddy/**'
+    branches: [main]
 
 jobs:
-  build_and_push_v2-7-6:
-    if: contains(github.event.head_commit.message, 'build/caddy:2.7.6') || contains(github.event.head_commit.message, 'build/all')
+  build:
     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    # один job – несколько конфигураций
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: "2.7.6"
+            dockerfile: "Dockerfile.caddy-2.7.6"
+            tags: |
+              rlkvch/caddy:2.7.6
+              rlkvch/caddy:v2.7-latest
+            platforms: linux/amd64,linux/arm,linux/arm64,linux/ppc64le
+            filter: "build/caddy:2.7.6"
+          - version: "2.8.0-beta.2"
+            dockerfile: "Dockerfile.caddy-2.8.0-beta.2"
+            tags: |
+              rlkvch/caddy:v2.8.0-beta.2
+              rlkvch/caddy:v2.8-latest
+            platforms: linux/amd64,linux/arm,linux/arm64,linux/ppc64le
+            filter: "build/caddy:2.8.0-beta.2"
+          - version: "2.10.0"
+            dockerfile: "Dockerfile.caddy-2.10.0"
+            tags: |
+              rlkvch/caddy:2.10.0
+              rlkvch/caddy:v2.10-latest
+              biggiko/caddy:v2.10
+              biggiko/caddy:v2.10-latest
+            platforms: linux/amd64,linux/arm64
+            filter: "build/caddy:2.10.0"
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build and push
-      run: cd ./caddy && docker buildx build -t rlkvch/caddy:2.7.6 -t rlkvch/caddy:v2.7-latest --platform linux/amd64,linux/arm,linux/arm64,linux/ppc64le -f Dockerfile.caddy-2.7.6 --push .
-
-  build_and_push_v2-8-0-beta-2:
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'build/caddy:2.8.0-beta.2') || contains(github.event.head_commit.message, 'build/all')
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Build and push
-      run: cd ./caddy && docker buildx build -t rlkvch/caddy:v2.8.0-beta.2 -t rlkvch/caddy:v2.8-latest --platform linux/amd64,linux/arm,linux/arm64,linux/arm,linux/ppc64le -f Dockerfile.caddy-2.8.0-beta.2 --push .
-
-  build_and_push_v2-10-0:
-    runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'build/caddy:2.10.0') || contains(github.event.head_commit.message, 'build/all')
+    # собираем только нужные образы
+    if: contains(github.event.head_commit.message, matrix.filter) ||
+        contains(github.event.head_commit.message, 'build/all')
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      - name: Set up QEMU (кросс-сборка)
+        uses: docker/setup-qemu-action@v3
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build and push
-      run: cd ./caddy && docker buildx build --tag rlkvch/caddy:2.10.0 --tag rlkvch/caddy:v2.10-latest --tag biggiko/caddy:v2.10 --tag biggiko/caddy:v2.10-latest --platform linux/amd64,linux/arm64 -f Dockerfile.caddy-2.10.0 --push .
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io          # явный реестр
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}  # персональный access-token
+
+      - name: Build & push ${{ matrix.version }}
+        uses: docker/build-push-action@v5
+        with:
+          context: ./caddy
+          file: ./caddy/${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ matrix.tags }}
+          platforms: ${{ matrix.platforms }}
+          cache-from: type=gha          # кеш в Actions
+          cache-to:   type=gha,mode=max
